@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Record payment · {% endblock %}
+{% block content %}
+{% macro text_field(name, label, type="text", hint=None, attrs="") %}
+<label>
+  <span>{{ label }}{% if hint %} <span class="muted">{{ hint }}</span>{% endif %}</span>
+  <input type="{{ type }}" name="{{ name }}" id="{{ name }}" value="{{ form[name] or '' }}"{{ attrs }}{% if errors.get(name) %} class="input-error" aria-invalid="true"{% endif %}>
+  {% if errors.get(name) %}<span class="form-error">{{ errors.get(name) }}</span>{% endif %}
+</label>
+{% endmacro %}
+
+<div class="card-header">
+  <h1>Record payment</h1>
+  <a href="{{ url_for('invoices.invoice_detail', invoice_id=invoice.id) }}" class="btn btn-ghost">Back to invoice</a>
+</div>
+
+<div class="card">
+  <p class="muted">Invoice {{ invoice.invoice_number }} · Balance due {{ balance_label }}</p>
+  <form method="post" action="{{ url_for('invoices.new_payment', invoice_id=invoice.id) }}" class="form" novalidate>
+    <div class="form-grid">
+      {{ text_field("amount", "Amount (₹)", hint="up to balance", attrs=' inputmode="decimal" placeholder="0.00"') }}
+      {{ text_field("payment_date", "Payment date", type="date", hint="YYYY-MM-DD") }}
+      <label>
+        <span>Method</span>
+        <select name="method" id="method"{% if errors.get('method') %} class="input-error" aria-invalid="true"{% endif %}>
+          {% for m in methods %}
+          <option value="{{ m }}"{% if form['method'] == m %} selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.get('method') %}<span class="form-error">{{ errors.get('method') }}</span>{% endif %}
+      </label>
+      {{ text_field("note", "Note", hint="optional") }}
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save payment</button>
+      <a href="{{ url_for('invoices.invoice_detail', invoice_id=invoice.id) }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

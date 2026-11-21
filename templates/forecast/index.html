@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}Cash forecast – {% endblock %}
+{% block content %}
+<div class="card-header">
+  <h1>Cash forecast</h1>
+  <span class="muted">Projected from {{ today }}</span>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <p class="muted">Current cash balance</p>
+      <p class="stat-value">{{ cash_balance_paise|inr }}</p>
+    </div>
+  </div>
+  <p class="muted">Cash balance is entered manually. Update it whenever you check your cash in hand or bank.</p>
+  <form method="post" action="{{ url_for('forecast.update_balance') }}" class="search-bar">
+    <label class="muted" for="cash-balance-input">Cash balance (&#8377;)</label>
+    <input type="text" id="cash-balance-input" name="cash_balance" inputmode="decimal" value="{{ cash_balance_input }}" required>
+    <button type="submit" class="btn btn-primary">Save balance</button>
+  </form>
+</div>
+
+<div class="stat-grid">
+  {% for m in milestones %}
+  <div class="card stat-card">
+    <p class="muted">Day {{ m.days }} projection ({{ m.date }})</p>
+    <p class="stat-value{% if m.balance_paise < 0 %} text-danger{% endif %}">{{ m.balance_paise|inr }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>90-day balance</h2>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="balance-chart" aria-label="90-day projected balance chart" role="img"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>Days with negative balance</h2>
+  </div>
+  {% if first_negative_date %}
+  <div class="flash flash-error" role="alert">Cash may fall short on {{ first_negative_date }}.</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th class="num">Inflow</th>
+          <th class="num">Outflow</th>
+          <th class="num">Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in negative_days %}
+        <tr>
+          <td>{{ entry.date }}</td>
+          <td class="num">{{ entry.inflow_paise|inr }}</td>
+          <td class="num">{{ entry.outflow_paise|inr }}</td>
+          <td class="num text-danger">{{ entry.balance_paise|inr }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No negative balance is projected in the next 90 days.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>What-if: delay a student's payments</h2>
+  </div>
+  {% if outstanding_students %}
+  <form method="get" action="{{ url_for('forecast.index') }}" class="search-bar">
+    <select name="student_id" aria-label="Student">
+      <option value="">Select a student</option>
+      {% for sid, name in outstanding_students %}
+      <option value="{{ sid }}"{% if sid == selected_student_id %} selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+    <input type="number" name="delay_days" min="0" max="180" step="1" value="{{ delay_days }}" aria-label="Delay in days">
+    <button type="submit" class="btn btn-primary">Run what-if</button>
+    <a href="{{ url_for('forecast.index') }}" class="btn btn-ghost">Clear</a>
+  </form>
+  <p class="muted">Delay is in days, 0 to 180. Default is 15.</p>
+  {% else %}
+  <p class="muted">No students have outstanding invoices, so there is nothing to delay.</p>
+  {% endif %}
+
+  {% if whatif %}
+  <h3>{{ whatif.student_name }}: payments delayed by {{ whatif.delay_days }} days</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Horizon</th>
+          <th class="num">Original</th>
+          <th class="num">Revised</th>
+          <th class="num">Difference</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in whatif.rows %}
+        <tr>
+          <td>Day {{ row.days }} ({{ row.date }})</td>
+          <td class="num">{{ row.original_paise|inr }}</td>
+          <td class="num">{{ row.revised_paise|inr }}</td>
+          <td class="num{% if row.difference_paise < 0 %} text-danger{% endif %}">{{ row.difference_paise|inr }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if whatif.delay_period|default([]) %}
+  <h3>Daily balance during the delay</h3>
+  <div class="chart-wrap">
+    <canvas id="delay-chart" aria-label="Daily cash balance during the delay, original versus revised" role="img"></canvas>
+  </div>
+  <p class="muted">Cash is delayed from {{ whatif.invoices|default([])|map(attribute='original_expected_date')|min }} to {{ whatif.invoices|default([])|map(attribute='revised_expected_date')|max }}.</p>
+  {% endif %}
+
+  <h3>Cash impact</h3>
+  <div class="stat-grid">
+    <div class="card stat-card">
+      <p class="muted">Minimum projected cash balance, original{% if whatif.min_balance_original_date|default(none) %} ({{ whatif.min_balance_original_date }}){% endif %}</p>
+      <p class="stat-value{% if whatif.min_balance_original_paise|default(0) < 0 %} text-danger{% endif %}">{{ whatif.min_balance_original_paise|default(0)|inr }}</p>
+    </div>
+    <div class="card stat-card">
+      <p class="muted">Minimum projected cash balance, revised{% if whatif.min_balance_revised_date|default(none) %} ({{ whatif.min_balance_revised_date }}){% endif %}</p>
+      <p class="stat-value{% if whatif.min_balance_revised_paise|default(0) < 0 %} text-danger{% endif %}">{{ whatif.min_balance_revised_paise|default(0)|inr }}</p>
+    </div>
+  </div>
+
+  <h3>Delayed invoices</h3>
+  {% if whatif.invoices|default([]) %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice ID</th>
+          <th class="num">Balance</th>
+          <th>Original expected</th>
+          <th>Revised expected</th>
+          <th class="num">Days delayed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in whatif.invoices|default([]) %}
+        <tr>
+          <td>{{ inv.invoice_id }}</td>
+          <td class="num">{{ inv.balance_paise|default(0)|inr }}</td>
+          <td>{{ inv.original_expected_date }}</td>
+          <td>{{ inv.revised_expected_date }}</td>
+          <td class="num">{{ inv.days_delayed }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">This student has no open invoices to delay.</p>
+  {% endif %}
+
+  <h3>Why the balances may match</h3>
+  <ul>
+    {% for line in whatif.milestone_explanation|default([]) %}
+    <li>{{ line }}</li>
+    {% endfor %}
+  </ul>
+
+  <h3>Upcoming expenses in the revised forecast</h3>
+  {% if whatif.unpayable %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Expense</th>
+          <th>Due</th>
+          <th class="num">Amount</th>
+          <th class="num">Balance on due date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in whatif.unpayable %}
+        <tr>
+          <td>{{ exp.name }}</td>
+          <td>{{ exp.due_date }}</td>
+          <td class="num">{{ exp.amount_paise|inr }}</td>
+          <td class="num text-danger">{{ exp.balance_paise|inr }}</td>
+          <td><span class="badge badge-overdue">cannot be paid</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">Every upcoming expense can still be paid in the revised forecast.</p>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var chartData = {{ chart_data|tojson }};
+  var canvas = document.getElementById("balance-chart");
+  if (!canvas || typeof Chart === "undefined") {
+    return;
+  }
+  var datasets = [{
+    label: "Projected balance (\u20b9)",
+    data: chartData.original,
+    borderColor: "#4f46e5",
+    backgroundColor: "rgba(79, 70, 229, 0.1)",
+    tension: 0.2,
+    pointRadius: 0
+  }];
+  if (chartData.revised) {
+    datasets.push({
+      label: chartData.revised_label,
+      data: chartData.revised,
+      borderColor: "#d97706",
+      borderDash: [6, 4],
+      tension: 0.2,
+      pointRadius: 0
+    });
+  }
+  new Chart(canvas, {
+    type: "line",
+    data: { labels: chartData.labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { ticks: { maxTicksLimit: 10 } },
+        y: { ticks: { callback: function (value) { return "\u20b9" + value.toLocaleString("en-IN"); } } }
+      }
+    }
+  });
+
+  var delayData = chartData.delay;
+  var delayCanvas = document.getElementById("delay-chart");
+  if (delayData && delayCanvas) {
+    new Chart(delayCanvas, {
+      type: "line",
+      data: {
+        labels: delayData.labels,
+        datasets: [
+          {
+            label: "Original balance",
+            data: delayData.original,
+            borderColor: "#4f46e5",
+            backgroundColor: "rgba(79, 70, 229, 0.1)",
+            tension: 0.2,
+            pointRadius: 0
+          },
+          {
+            label: "Revised balance (delayed)",
+            data: delayData.revised,
+            borderColor: "#d97706",
+            borderDash: [6, 4],
+            tension: 0.2,
+            pointRadius: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { ticks: { maxTicksLimit: 10 } },
+          y: { ticks: { callback: function (value) { return "\u20b9" + value.toLocaleString("en-IN"); } } }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Invoice {{ invoice.invoice_number }} · BizFlow AI</title>
+  <style>
+    @page { size: A4; margin: 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #ffffff;
+      color: #111827;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .sheet { max-width: 190mm; margin: 0 auto; }
+    .toolbar { margin-bottom: 16px; display: flex; gap: 12px; align-items: center; }
+    .print-btn {
+      padding: 8px 16px; background: #4f46e5; color: #ffffff; border: 0;
+      border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .back-link { color: #4f46e5; font-size: 13px; }
+    .inv-head {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      border-bottom: 2px solid #111827; padding-bottom: 12px; margin-bottom: 18px;
+    }
+    .inv-head h1 { margin: 0; font-size: 22px; letter-spacing: 0.02em; }
+    .tutor { font-weight: 700; font-size: 16px; }
+    .muted { color: #6b7280; }
+    .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
+    .parties { display: flex; gap: 24px; margin-bottom: 16px; }
+    .parties > div { flex: 1; }
+    .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 7px 8px; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top; }
+    th { background: #f3f4f6; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #374151; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .totals { margin-left: auto; width: 260px; margin-top: 12px; }
+    .totals div { display: flex; justify-content: space-between; padding: 4px 0; }
+    .totals .grand { border-top: 2px solid #111827; font-weight: 700; font-size: 15px; margin-top: 4px; padding-top: 6px; }
+    .totals .due { font-weight: 700; }
+    .footer { margin-top: 36px; font-size: 11px; color: #6b7280; }
+    @media print {
+      body { padding: 0; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="sheet">
+  <div class="toolbar no-print">
+    <button type="button" class="print-btn no-print" onclick="window.print()">Print / Save as PDF</button>
+    <a class="back-link no-print" href="{{ url_for('invoices.invoice_detail', invoice_id=invoice.id) }}">Back to invoice</a>
+  </div>
+
+  <div class="inv-head">
+    <div>
+      <div class="label">Invoice from</div>
+      <div class="tutor">{{ tutor_name }}</div>
+      <div class="muted">Home tuition</div>
+    </div>
+    <div style="text-align:right">
+      <h1>INVOICE</h1>
+      <div>{{ invoice.invoice_number }}</div>
+    </div>
+  </div>
+
+  <div class="parties">
+    <div>
+      <div class="label">Billed to</div>
+      <div><strong>{{ student.name }}</strong></div>
+      <div>Parent / guardian: {{ student.parent_name or '—' }}</div>
+      {% if student.phone %}<div>Phone: {{ student.phone }}</div>{% endif %}
+      {% if student.email %}<div>Email: {{ student.email }}</div>{% endif %}
+      {% if student.address %}<div>{{ student.address }}</div>{% endif %}
+    </div>
+    <div>
+      <div class="meta">
+        <div><div class="label">Invoice number</div><div>{{ invoice.invoice_number }}</div></div>
+        <div><div class="label">Status</div><div>{{ invoice.status_label }}</div></div>
+        <div><div class="label">Invoice date</div><div>{{ invoice.invoice_date }}</div></div>
+        <div><div class="label">Due date</div><div>{{ invoice.due_date }}</div></div>
+      </div>
+    </div>
+  </div>
+
+  {% if invoice.description %}
+  <p><span class="label">Description</span><br>{{ invoice.description }}</p>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:6%">#</th>
+        <th>Item</th>
+        <th class="num" style="width:10%">Qty</th>
+        <th class="num" style="width:18%">Unit price</th>
+        <th class="num" style="width:18%">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ item.description }}</td>
+        <td class="num">{{ item.quantity }}</td>
+        <td class="num">{{ item.unit_price_label }}</td>
+        <td class="num">{{ item.amount_label }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div><span>Total</span><span>{{ invoice.total_label }}</span></div>
+    <div><span>Paid</span><span>{{ invoice.paid_label }}</span></div>
+    <div class="grand due"><span>Balance due</span><span>{{ invoice.balance_label }}</span></div>
+  </div>
+
+  <div class="footer">
+    Thank you. Please quote {{ invoice.invoice_number }} with your payment.
+  </div>
+</div>
+</body>
+</html>

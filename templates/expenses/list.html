@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Expenses · {% endblock %}
+{% block content %}
+<div class="card-header">
+  <div>
+    <h1>Expenses</h1>
+    <p class="muted">Track rent, salary and other costs. Mark them paid when settled.</p>
+  </div>
+</div>
+
+<section class="card">
+  <h2>Add expense</h2>
+  <form method="post" action="{{ url_for('expenses.new_expense') }}" class="form">
+    <div class="form-grid">
+      <label>
+        Name
+        <input type="text" name="name" value="{{ form.name }}" required
+               class="{% if errors.name %}input-error{% endif %}">
+        {% if errors.name %}<span class="form-error">{{ errors.name }}</span>{% endif %}
+      </label>
+      <label>
+        Category
+        <select name="category" class="{% if errors.category %}input-error{% endif %}">
+          {% for option in categories %}
+          <option value="{{ option }}"{% if form.category == option %} selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.category %}<span class="form-error">{{ errors.category }}</span>{% endif %}
+      </label>
+      <label>
+        Amount (Rs)
+        <input type="text" name="amount" value="{{ form.amount }}" inputmode="decimal" placeholder="e.g. 1500.00" required
+               class="{% if errors.amount %}input-error{% endif %}">
+        {% if errors.amount %}<span class="form-error">{{ errors.amount }}</span>{% endif %}
+      </label>
+      <label>
+        Due date
+        <input type="date" name="due_date" value="{{ form.due_date }}" required
+               class="{% if errors.due_date %}input-error{% endif %}">
+        {% if errors.due_date %}<span class="form-error">{{ errors.due_date }}</span>{% endif %}
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" name="recurring_monthly" {% if form.recurring_monthly %}checked{% endif %}>
+        Recurs monthly
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Add expense</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>All expenses</h2>
+  {% if expenses %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th class="num">Amount</th>
+          <th>Due date</th>
+          <th>Status</th>
+          <th>Paid on</th>
+          <th>Recurring</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for expense in expenses %}
+        <tr>
+          <td>{{ expense.name }}</td>
+          <td>{{ expense.category or "—" }}</td>
+          <td class="num item-amount">{{ expense.amount_label }}</td>
+          <td>{{ expense.due_date }}</td>
+          <td>
+            {% if expense.paid %}
+            <span class="badge badge-paid">Paid</span>
+            {% else %}
+            <span class="badge badge-pending">Unpaid</span>
+            {% endif %}
+          </td>
+          <td>{{ expense.paid_date or "—" }}</td>
+          <td>{% if expense.recurring %}Monthly{% else %}—{% endif %}</td>
+          <td>
+            <div class="actions">
+              <form method="post" action="{{ url_for('expenses.toggle_paid', expense_id=expense.id) }}" class="inline-form">
+                <button type="submit" class="btn btn-ghost btn-sm">{% if expense.paid %}Mark unpaid{% else %}Mark paid{% endif %}</button>
+              </form>
+              <form method="post" action="{{ url_for('expenses.delete_expense', expense_id=expense.id) }}" class="inline-form"
+                    onsubmit="return confirm('Delete this expense?');">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No expenses yet. Add your first one above.</p>
+  {% endif %}
+</section>
+{% endblock %}

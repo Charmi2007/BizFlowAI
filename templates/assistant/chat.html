@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant – {% endblock %}
+{% block content %}
+<div class="card-header">
+  <h1>AI Assistant</h1>
+  <form method="post" action="{{ url_for('assistant.clear') }}" class="inline-form">
+    <button type="submit" class="btn btn-ghost btn-sm">Clear chat</button>
+  </form>
+</div>
+
+{% if not ai_configured %}
+<p class="muted">AI model not configured — answers are calculated directly from your records.</p>
+{% endif %}
+
+<div class="card chat-panel">
+  {% if transcript %}
+    {% for entry in transcript %}
+      {% if entry.role == "user" %}
+      <div class="chat-msg chat-msg-user">
+        <div class="chat-msg-body">{{ entry.text }}</div>
+      </div>
+      {% elif entry.role == "assistant" %}
+      <div class="chat-msg chat-msg-assistant">
+        <span class="chat-badge">{{ entry.source_label }}</span>
+        <div class="chat-msg-body">{{ entry.text }}</div>
+      </div>
+      {% elif entry.role == "note" %}
+      <p class="chat-note">{{ entry.text }}</p>
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    <p class="muted">No messages yet. Pick a suggestion below or type your own question.</p>
+  {% endif %}
+</div>
+
+<div class="chat-chips">
+  <button type="button" class="chat-chip" data-question="Who has not paid?">Who has not paid?</button>
+  <button type="button" class="chat-chip" data-question="How much is overdue?">How much is overdue?</button>
+  <button type="button" class="chat-chip" data-question="Show upcoming bills">Show upcoming bills</button>
+  <button type="button" class="chat-chip" data-question="What if Rahul pays 15 days late?">What if Rahul pays 15 days late?</button>
+  <button type="button" class="chat-chip" data-question="What is my 30-day forecast?">What is my 30-day forecast?</button>
+  <button type="button" class="chat-chip" data-question="What is my health score?">What is my health score?</button>
+  <button type="button" class="chat-chip" data-question="Which payments should I follow up today?">Which payments should I follow up today?</button>
+</div>
+
+<form method="post" action="{{ url_for('assistant.ask') }}" class="chat-form">
+  <textarea name="question" maxlength="{{ max_chars }}" rows="3" required placeholder="Ask about your payments, bills or cash…"></textarea>
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Ask</button>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+  (function () {
+    var textarea = document.querySelector('.chat-form textarea[name="question"]');
+    if (!textarea) return;
+    document.querySelectorAll('.chat-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        textarea.value = chip.getAttribute('data-question') || '';
+        textarea.focus();
+      });
+    });
+  })();
+</script>
+{% endblock %}

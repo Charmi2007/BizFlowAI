@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %}BizFlow AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+</head>
+<body class="{% if g.user %}has-sidebar{% else %}auth-page{% endif %}">
+<div class="app-shell">
+  {% if g.user %}
+  <aside class="sidebar no-print" id="sidebar">
+    <div class="brand">BizFlow AI</div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('dashboard.dashboard') }}" class="nav-link{% if request.endpoint == 'dashboard.dashboard' %} active{% endif %}">Dashboard</a>
+      <a href="{{ url_for('students.list_students') }}" class="nav-link{% if request.endpoint and request.endpoint.startswith('students.') %} active{% endif %}">Students</a>
+      <a href="{{ url_for('invoices.list_invoices') }}" class="nav-link{% if request.endpoint and request.endpoint.startswith('invoices.') %} active{% endif %}">Invoices</a>
+      <a href="{{ url_for('followup.list_followup') }}" class="nav-link{% if request.endpoint and request.endpoint.startswith('followup.') %} active{% endif %}">Follow-up</a>
+      <a href="{{ url_for('expenses.list_expenses') }}" class="nav-link{% if request.endpoint and request.endpoint.startswith('expenses.') %} active{% endif %}">Expenses</a>
+      <a href="{{ url_for('forecast.index') }}" class="nav-link{% if request.endpoint and request.endpoint.startswith('forecast.') %} active{% endif %}">Forecast</a>
+      <a href="{{ url_for('assistant.index') }}" class="nav-link{% if request.endpoint and request.endpoint.startswith('assistant.') %} active{% endif %}">AI Assistant</a>
+    </nav>
+  </aside>
+  <div class="sidebar-overlay" id="sidebar-overlay" hidden></div>
+  {% endif %}
+
+  <div class="main">
+    {% if g.user %}
+    <header class="topbar no-print">
+      <button type="button" class="btn btn-ghost menu-toggle" id="menu-toggle" aria-controls="sidebar" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
+      <span class="topbar-spacer"></span>
+      <span class="topbar-user">{{ g.user.name }}</span>
+      <form method="post" action="{{ url_for('auth.logout') }}" class="inline-form">
+        <button type="submit" class="btn btn-ghost btn-sm">Logout</button>
+      </form>
+    </header>
+    {% else %}
+    <header class="topbar-auth no-print">
+      <span class="brand">BizFlow AI</span>
+    </header>
+    {% endif %}
+
+    <main class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack no-print">
+          {% for category, message in messages %}
+          <div class="flash flash-{{ category }}" role="alert">{{ message }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Invoices · {% endblock %}
+{% block content %}
+<div class="card-header">
+  <h1>Invoices</h1>
+  <a href="{{ url_for('invoices.new_invoice') }}" class="btn btn-primary">New invoice</a>
+</div>
+
+<div class="card">
+  <form method="get" action="{{ url_for('invoices.list_invoices') }}" class="search-bar">
+    <label for="status" class="muted">Status</label>
+    <select name="status" id="status" aria-label="Filter by status">
+      {% for value, label in status_options %}
+      <option value="{{ value }}"{% if value == status_filter %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-ghost">Filter</button>
+    {% if status_filter != 'all' %}<a href="{{ url_for('invoices.list_invoices') }}" class="btn btn-ghost">Clear</a>{% endif %}
+  </form>
+</div>
+
+{% if invoices %}
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice</th>
+          <th>Student</th>
+          <th>Invoice date</th>
+          <th>Due date</th>
+          <th class="num">Total</th>
+          <th class="num">Paid</th>
+          <th class="num">Balance</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td><a href="{{ url_for('invoices.invoice_detail', invoice_id=inv.id) }}">{{ inv.invoice_number }}</a></td>
+          <td>{{ inv.student_name }}</td>
+          <td>{{ inv.invoice_date }}</td>
+          <td>{{ inv.due_date }}</td>
+          <td class="num">{{ inv.total_label }}</td>
+          <td class="num">{{ inv.paid_label }}</td>
+          <td class="num">{{ inv.balance_label }}</td>
+          <td><span class="badge {{ inv.badge_class }}">{{ inv.status_label }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  {% if status_filter != 'all' %}
+  <p class="muted">No invoices with this status.</p>
+  {% else %}
+  <p class="muted">No invoices yet. Use "New invoice" to create your first one.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ invoice.invoice_number }} · {% endblock %}
+{% block content %}
+<div class="card-header">
+  <h1>Invoice {{ invoice.invoice_number }}</h1>
+  <div class="actions">
+    <a href="{{ url_for('invoices.print_invoice', invoice_id=invoice.id) }}" class="btn btn-ghost" target="_blank" rel="noopener">Print</a>
+    <a href="{{ url_for('invoices.list_invoices') }}" class="btn btn-ghost">Back to invoices</a>
+  </div>
+</div>
+
+<div class="card">
+  <dl class="info-grid">
+    <div>
+      <dt class="muted">Student</dt>
+      <dd><a href="{{ url_for('students.student_detail', student_id=student.id) }}">{{ student.name }}</a></dd>
+    </div>
+    <div>
+      <dt class="muted">Parent</dt>
+      <dd>{{ student.parent_name or '—' }}</dd>
+    </div>
+    <div>
+      <dt class="muted">Status</dt>
+      <dd><span class="badge {{ invoice.badge_class }}">{{ invoice.status_label }}</span></dd>
+    </div>
+    <div>
+      <dt class="muted">Invoice date</dt>
+      <dd>{{ invoice.invoice_date }}</dd>
+    </div>
+    <div>
+      <dt class="muted">Due date</dt>
+      <dd>{{ invoice.due_date }}</dd>
+    </div>
+    <div>
+      <dt class="muted">Description</dt>
+      <dd>{{ invoice.description or '—' }}</dd>
+    </div>
+  </dl>
+</div>
+
+<div class="card">
+  <h2>Line items</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th class="num">Qty</th>
+          <th class="num">Unit price</th>
+          <th class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.description }}</td>
+          <td class="num">{{ item.quantity }}</td>
+          <td class="num">{{ item.unit_price_label }}</td>
+          <td class="num">{{ item.amount_label }}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+          <th colspan="3" class="num">Total</th>
+          <td class="num"><strong>{{ invoice.total_label }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="card stat-card">
+    <div class="muted">Total</div>
+    <div class="stat-value">{{ invoice.total_label }}</div>
+  </div>
+  <div class="card stat-card">
+    <div class="muted">Paid</div>
+    <div class="stat-value">{{ invoice.paid_label }}</div>
+  </div>
+  <div class="card stat-card">
+    <div class="muted">Balance due</div>
+    <div class="stat-value{% if invoice.balance_paise > 0 %} text-danger{% endif %}">{{ invoice.balance_label }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>Payments</h2>
+    {% if invoice.balance_paise > 0 %}
+    <a href="{{ url_for('invoices.new_payment', invoice_id=invoice.id) }}" class="btn btn-primary btn-sm">Record payment</a>
+    {% endif %}
+  </div>
+  {% if payments %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Method</th>
+          <th>Note</th>
+          <th class="num">Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in payments %}
+        <tr>
+          <td>{{ payment.payment_date }}</td>
+          <td>{{ payment.method or '—' }}</td>
+          <td>{{ payment.note or '—' }}</td>
+          <td class="num">{{ payment.amount_label }}</td>
+          <td>
+            <form method="post" action="{{ url_for('invoices.delete_payment', invoice_id=invoice.id, payment_id=payment.id) }}" onsubmit="return confirm('Delete this payment?');">
+              <button type="submit" class="btn btn-ghost btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No payments recorded yet</p>
+  {% endif %}
+</div>
+{% endblock %}

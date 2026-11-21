@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Follow-up · {% endblock %}
+{% block content %}
+<div class="card-header">
+  <h1>Payment follow-up</h1>
+</div>
+
+<div class="stat-grid">
+  <div class="card stat-card">
+    <p class="muted">Total outstanding</p>
+    <h2>{{ total_outstanding_label }}</h2>
+  </div>
+  <div class="card stat-card">
+    <p class="muted">Overdue invoices</p>
+    <h2 class="text-danger">{{ overdue_count }}</h2>
+  </div>
+  <div class="card stat-card">
+    <p class="muted">Needing attention today</p>
+    <h2>{{ attention_count }}</h2>
+  </div>
+</div>
+
+<div class="card">
+  <div class="search-bar">
+    <a href="{{ url_for('followup.list_followup') }}" class="btn btn-ghost">All outstanding</a>
+    <a href="{{ url_for('followup.list_followup', only='overdue') }}" class="btn btn-ghost">Overdue only</a>
+    {% if only %}<span class="muted">Showing overdue invoices only.</span>{% endif %}
+  </div>
+</div>
+
+{% if items %}
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Parent</th>
+          <th>Phone</th>
+          <th>Invoice</th>
+          <th>Due date</th>
+          <th class="num">Balance</th>
+          <th class="num">Days overdue</th>
+          <th>Status</th>
+          <th>Reminder</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.student_name }}</td>
+          <td>{{ it.parent_name }}</td>
+          <td>{{ it.phone }}</td>
+          <td><a href="{{ url_for('invoices.invoice_detail', invoice_id=it.id) }}">{{ it.invoice_number }}</a></td>
+          <td>{{ it.due_date }}{% if it.needs_attention %} <span class="badge badge-pending">Attention</span>{% endif %}</td>
+          <td class="num">{{ it.balance_label }}</td>
+          <td class="num">{{ it.days_overdue }}</td>
+          <td><span class="badge {{ it.badge_class }}">{{ it.status_label }}</span></td>
+          <td class="reminder-cell">
+            <textarea id="{{ it.textarea_id }}" rows="4" readonly aria-label="Reminder for {{ it.invoice_number }}">{{ it.reminder }}</textarea>
+            <button type="button" class="btn btn-ghost btn-sm js-copy-reminder" data-target="{{ it.textarea_id }}">Copy reminder</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  {% if only %}
+  <p class="muted">No overdue invoices. Nice work.</p>
+  {% else %}
+  <p class="muted">No outstanding invoices. Every invoice is fully paid.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

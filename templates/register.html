@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Register · {% endblock %}
+{% block content %}
+<div class="auth-card card">
+  <h1>Create account</h1>
+  <form method="post" action="{{ url_for('auth.register') }}" class="form">
+    <label>Name
+      <input type="text" name="name" value="{{ form.name }}" required autocomplete="name">
+    </label>
+    <label>Email
+      <input type="email" name="email" value="{{ form.email }}" required autocomplete="email">
+    </label>
+    <label>Password <span class="muted">(min 8 characters)</span>
+      <input type="password" name="password" minlength="8" required autocomplete="new-password">
+    </label>
+    <label>Confirm password
+      <input type="password" name="confirm_password" minlength="8" required autocomplete="new-password">
+    </label>
+    <button type="submit" class="btn btn-primary btn-block">Create account</button>
+  </form>
+  <p class="muted">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+</div>
+{% endblock %}

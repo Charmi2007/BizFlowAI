@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}New invoice · {% endblock %}
+{% block content %}
+{% macro text_field(name, label, type="text", hint=None) %}
+<label>
+  <span>{{ label }}{% if hint %} <span class="muted">{{ hint }}</span>{% endif %}</span>
+  <input type="{{ type }}" name="{{ name }}" id="{{ name }}" value="{{ form[name] or '' }}"{% if errors.get(name) %} class="input-error" aria-invalid="true"{% endif %}>
+  {% if errors.get(name) %}<span class="form-error">{{ errors.get(name) }}</span>{% endif %}
+</label>
+{% endmacro %}
+
+{% macro item_row(item) %}
+<tr class="item-row">
+  <td><input type="text" name="item_description" value="{{ item.description }}" class="item-desc" maxlength="200" aria-label="Item description"></td>
+  <td><input type="number" name="item_quantity" value="{{ item.quantity }}" min="1" step="1" class="item-qty" aria-label="Quantity"></td>
+  <td><input type="text" name="item_unit_price" value="{{ item.unit_price }}" inputmode="decimal" placeholder="0.00" class="item-price" aria-label="Unit price in rupees"></td>
+  <td class="num"><span class="item-amount">₹0.00</span></td>
+  <td><button type="button" class="btn btn-ghost btn-sm item-remove">Remove</button></td>
+</tr>
+{% endmacro %}
+
+<div class="card-header">
+  <h1>New invoice</h1>
+  <a href="{{ url_for('invoices.list_invoices') }}" class="btn btn-ghost">Back</a>
+</div>
+
+<div class="card">
+  <form method="post" action="{{ url_for('invoices.new_invoice') }}" class="form" novalidate>
+    <div class="form-grid">
+      <label>
+        <span>Student</span>
+        <select name="student_id" id="student_id" required{% if errors.get('student_id') %} class="input-error" aria-invalid="true"{% endif %}>
+          <option value="">Select a student</option>
+          {% for s in students %}
+          <option value="{{ s.id }}"{% if form['student_id'] == s.id|string %} selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.get('student_id') %}<span class="form-error">{{ errors.get('student_id') }}</span>{% endif %}
+      </label>
+      {{ text_field("invoice_date", "Invoice date", type="date", hint="YYYY-MM-DD") }}
+      {{ text_field("due_date", "Due date", type="date", hint="on or after invoice date") }}
+      {{ text_field("description", "Description", hint="optional") }}
+    </div>
+
+    <div>
+      <div class="card-header">
+        <h2>Line items</h2>
+        <span class="muted">Up to 10 items</span>
+      </div>
+      {% if errors.get('items') %}<p class="form-error">{{ errors.get('items') }}</p>{% endif %}
+      <div class="table-wrap">
+        <table class="item-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="num">Qty</th>
+              <th class="num">Unit price (₹)</th>
+              <th class="num">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="item-rows">
+            {% for item in form['items'] %}
+            {{ item_row(item) }}
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="3" class="num">Total</th>
+              <td class="num"><strong id="invoice-total">₹0.00</strong></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p>
+        <button type="button" class="btn btn-ghost btn-sm" id="add-item">Add item</button>
+      </p>
+      <p class="muted">The total shown is a preview; the server recalculates it when you save.</p>
+    </div>
+
+    <template id="item-row-template">
+      {{ item_row({"description": "", "quantity": "1", "unit_price": ""}) }}
+    </template>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save invoice</button>
+      <a href="{{ url_for('invoices.list_invoices') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

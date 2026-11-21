@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · {% endblock %}
+{% block content %}
+<div class="card-header">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="muted">Welcome, {{ g.user.name }}. Figures as of {{ today }}.</p>
+  </div>
+</div>
+<section class="card">
+  <div class="card-header">
+    <h2>AI Assistant</h2>
+  </div>
+  <p class="muted">Ask questions about your payments, bills and cash forecast.</p>
+  <a href="{{ url_for('assistant.index') }}" class="btn">Open AI Assistant</a>
+</section>
+
+
+
+<section class="stat-grid">
+  <div class="card stat-card">
+    <div class="muted">Total revenue</div>
+    <div class="stat-value">{{ summary.revenue }}</div>
+  </div>
+  <div class="card stat-card">
+    <div class="muted">Total expenses paid</div>
+    <div class="stat-value">{{ summary.expenses_paid }}</div>
+  </div>
+  <div class="card stat-card">
+    <div class="muted">Cash balance</div>
+    <div class="stat-value">{{ summary.cash_balance }}</div>
+    <div class="muted"><a href="{{ url_for('forecast.index') }}">Update in forecast</a></div>
+  </div>
+  <div class="card stat-card">
+    <div class="muted">Total outstanding</div>
+    <div class="stat-value">{{ summary.outstanding }}</div>
+  </div>
+  <div class="card stat-card">
+    <div class="muted">Overdue invoices</div>
+    <div class="stat-value{% if summary.overdue_count %} text-danger{% endif %}">{{ summary.overdue_count }}</div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>Income vs expenses (last 6 months)</h2>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="income-expense-chart" aria-label="Income versus expenses bar chart" role="img"></canvas>
+  </div>
+  <p class="muted">Income is grouped by payment date. Expenses are grouped by due date, paid or unpaid.</p>
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>Next {{ upcoming_days }} days</h2>
+  </div>
+  <dl class="info-grid">
+    <div>
+      <dt>Expected inflows</dt>
+      <dd>{{ summary.expected_inflow }}</dd>
+      <dd class="muted">Open invoice balances due by {{ horizon }}</dd>
+    </div>
+    <div>
+      <dt>Unpaid expenses due</dt>
+      <dd>{{ summary.upcoming_expense }}</dd>
+      <dd class="muted">{{ summary.upcoming_expense_count }} expense(s) due by {{ horizon }}</dd>
+    </div>
+  </dl>
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>Cash impact of a {{ impact_delay_days }}-day delay</h2>
+  </div>
+  {% if cash_impact %}
+  <dl class="info-grid">
+    <div>
+      <dt>{{ cash_impact.student_name }}</dt>
+      <dd>{{ cash_impact.outstanding }}</dd>
+      <dd class="muted">Largest outstanding student balance</dd>
+    </div>
+    <div>
+      <dt>Lowest projected balance (90 days)</dt>
+      <dd>Original: {{ cash_impact.original_min }}</dd>
+      <dd>With {{ cash_impact.delay_days }}-day delay: {{ cash_impact.revised_min }}</dd>
+    </div>
+  </dl>
+  <a href="{{ url_for('forecast.index', student_id=cash_impact.student_id, delay_days=cash_impact.delay_days) }}" class="btn">Open delay what-if</a>
+  {% else %}
+  <p class="muted">No outstanding invoices</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>Alerts</h2>
+  </div>
+  {% if alerts %}
+  <div class="flash-stack">
+    {% for alert in alerts %}
+    <div class="flash flash-{% if alert.severity == 'danger' %}error{% else %}{{ alert.severity }}{% endif %}">
+      {{ alert.message }}
+      <a href="{{ alert.action_url }}">{{ alert.action_label }}</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">No alerts. Nothing needs attention right now.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>Business health score</h2>
+  </div>
+  <div class="health-score">{{ health.total_points }}<span class="health-score-max"> / 100</span></div>
+  <p class="muted">
+    The score adds up four components: collection (40 points, share of invoiced fees for due invoices actually collected),
+    outstanding (25 points, share of all invoiced fees that is not outstanding),
+    cash cover (20 points, full marks if the 90-day cash forecast stays non-negative, partial if it dips later),
+    and expense management (15 points, share of expenses already due that are marked paid).
+    Each component is rounded to one decimal place and the total is rounded to a whole number.
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th class="num">Max points</th>
+          <th class="num">Points</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for component in health.components %}
+        <tr>
+          <td>{{ component.name }}</td>
+          <td class="num">{{ component.max_points }}</td>
+          <td class="num">{{ component.points }}</td>
+          <td>{{ component.detail }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var chartData = {{ chart_data|tojson }};
+    var canvas = document.getElementById("income-expense-chart");
+    if (!canvas || typeof Chart === "undefined") {
+      return;
+    }
+    new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: chartData.labels,
+        datasets: [
+          { label: "Income (Rs)", data: chartData.income, backgroundColor: "#16a34a" },
+          { label: "Expenses (Rs)", data: chartData.expenses, backgroundColor: "#dc2626" }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  });
+</script>
+{% endblock %}

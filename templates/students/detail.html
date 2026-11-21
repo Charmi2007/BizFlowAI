@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ student.name }} · {% endblock %}
+{% block content %}
+<div class="card-header">
+  <h1>{{ student.name }}</h1>
+  <div class="actions">
+    <a href="{{ url_for('students.edit_student', student_id=student.id) }}" class="btn btn-ghost">Edit</a>
+    <form method="post" action="{{ url_for('students.delete_student', student_id=student.id) }}" class="inline-form"
+          onsubmit="return confirm('Delete this student? Their invoices and payments will also be deleted.');">
+      <button type="submit" class="btn btn-danger">Delete</button>
+    </form>
+    <a href="{{ url_for('students.list_students') }}" class="btn btn-ghost">Back to students</a>
+  </div>
+</div>
+
+<div class="card">
+  <dl class="info-grid">
+    <div>
+      <dt class="muted">Parent</dt>
+      <dd>{{ student.parent_name or '—' }}</dd>
+    </div>
+    <div>
+      <dt class="muted">Phone</dt>
+      <dd>{{ student.phone or '—' }}</dd>
+    </div>
+    <div>
+      <dt class="muted">Email</dt>
+      <dd>{{ student.email or '—' }}</dd>
+    </div>
+    <div>
+      <dt class="muted">Monthly fee</dt>
+      <dd>{{ fee_label }}</dd>
+    </div>
+    <div>
+      <dt class="muted">Start date</dt>
+      <dd>{{ student.start_date or '—' }}</dd>
+    </div>
+    <div>
+      <dt class="muted">Status</dt>
+      <dd>
+        {% if student.active %}
+        <span class="badge badge-paid">Active</span>
+        {% else %}
+        <span class="badge badge-inactive">Inactive</span>
+        {% endif %}
+      </dd>
+    </div>
+    <div class="info-wide">
+      <dt class="muted">Address</dt>
+      <dd>{{ student.address or '—' }}</dd>
+    </div>
+  </dl>
+</div>
+
+<div class="stat-grid">
+  <div class="card stat-card">
+    <div class="muted">Total invoiced</div>
+    <div class="stat-value">{{ invoiced_label }}</div>
+  </div>
+  <div class="card stat-card">
+    <div class="muted">Total paid</div>
+    <div class="stat-value">{{ paid_label }}</div>
+  </div>
+  <div class="card stat-card">
+    <div class="muted">Outstanding balance</div>
+    <div class="stat-value{% if outstanding_paise > 0 %} text-danger{% endif %}">{{ outstanding_label }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>Payment history</h2>
+  </div>
+  {% if payments %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Invoice</th>
+          <th class="num">Amount</th>
+          <th>Method</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td>{{ p.payment_date }}</td>
+          <td>{{ p.invoice_number }}</td>
+          <td class="num">{{ p.amount_label }}</td>
+          <td>{{ p.method or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No payments yet</p>
+  {% endif %}
+</div>
+{% endblock %}
+
