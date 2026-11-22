@@ -15,6 +15,7 @@
   </div>
   <p class="muted">Cash balance is entered manually. Update it whenever you check your cash in hand or bank.</p>
   <form method="post" action="{{ url_for('forecast.update_balance') }}" class="search-bar">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label class="muted" for="cash-balance-input">Cash balance (&#8377;)</label>
     <input type="text" id="cash-balance-input" name="cash_balance" inputmode="decimal" value="{{ cash_balance_input }}" required>
     <button type="submit" class="btn btn-primary">Save balance</button>
@@ -206,6 +207,126 @@
   {% endif %}
   {% endif %}
 </div>
+
+<section class="card sim-panel" aria-labelledby="sim-heading">
+  <div class="card-header">
+    <h2 id="sim-heading">Financial simulation studio</h2>
+  </div>
+  <p class="muted">Simulated values only. Changing these controls never changes invoices, payments, expenses or students.</p>
+
+  <div class="sim-controls">
+    <div class="sim-control">
+      <label class="sim-control-label" for="sim-delay-number" title="Days every expected incoming payment is pushed back. 0 to 180. Default 15.">Delay in customer payments (days)</label>
+      <div class="sim-control-row">
+        <input type="range" id="sim-delay-range" class="sim-slider" min="0" max="180" step="1" value="15" aria-label="Delay in customer payments, in days" title="Days every expected incoming payment is pushed back. 0 to 180. Default 15.">
+        <input type="number" id="sim-delay-number" class="sim-number" min="0" max="180" step="1" value="15" title="Days every expected incoming payment is pushed back. 0 to 180. Default 15.">
+      </div>
+    </div>
+
+    <div class="sim-control">
+      <label class="sim-control-label" for="sim-collection-number" title="Share of expected inflows that is actually collected. 0 to 100%. Default 100%.">Payment collection rate (% of expected inflows)</label>
+      <div class="sim-control-row">
+        <input type="range" id="sim-collection-range" class="sim-slider" min="0" max="100" step="1" value="100" aria-label="Payment collection rate, percent of expected inflows" title="Share of expected inflows that is actually collected. 0 to 100%. Default 100%.">
+        <input type="number" id="sim-collection-number" class="sim-number" min="0" max="100" step="1" value="100" title="Share of expected inflows that is actually collected. 0 to 100%. Default 100%.">
+      </div>
+    </div>
+
+    <div class="sim-control">
+      <label class="sim-control-label" for="sim-revenue-number" title="Percentage change applied to expected revenue. -50% to 100%. Default 0%.">Expected revenue change (%)</label>
+      <div class="sim-control-row">
+        <input type="range" id="sim-revenue-range" class="sim-slider" min="-50" max="100" step="1" value="0" aria-label="Expected revenue change, percent" title="Percentage change applied to expected revenue. -50% to 100%. Default 0%.">
+        <input type="number" id="sim-revenue-number" class="sim-number" min="-50" max="100" step="1" value="0" title="Percentage change applied to expected revenue. -50% to 100%. Default 0%.">
+      </div>
+    </div>
+
+    <div class="sim-control">
+      <label class="sim-control-label" for="sim-extra-number" title="Extra expense added to every simulated month, in rupees. Default 0.">Additional monthly expense (&#8377;)</label>
+      <div class="sim-control-row">
+        <input type="range" id="sim-extra-range" class="sim-slider" min="0" max="100000" step="100" value="0" aria-label="Additional monthly expense, rupees" title="Extra expense added to every simulated month, in rupees. Default 0.">
+        <input type="number" id="sim-extra-number" class="sim-number" min="0" step="100" value="0" inputmode="numeric" title="Extra expense added to every simulated month, in rupees. Default 0.">
+      </div>
+    </div>
+  </div>
+
+  <div class="sim-actions">
+    <button type="button" id="sim-reset" class="btn btn-ghost">Reset simulation</button>
+    <button type="button" id="sim-restore" class="btn btn-ghost">Restore defaults</button>
+    <span id="sim-status" class="muted" aria-live="polite"></span>
+  </div>
+
+  <p id="sim-error" class="sim-error" role="alert" hidden></p>
+
+  <div class="kpi-grid">
+    <div class="card kpi-card">
+      <p class="kpi-label">Projected closing balance</p>
+      <p class="kpi-value" id="sim-closing-scenario">&ndash;</p>
+      <p class="kpi-hint">Baseline: <span id="sim-closing-baseline">&ndash;</span></p>
+    </div>
+    <div class="card kpi-card">
+      <p class="kpi-label">Lowest projected balance</p>
+      <p class="kpi-value" id="sim-lowest-scenario">&ndash;</p>
+      <p class="kpi-hint">Date: <span id="sim-lowest-date">&ndash;</span></p>
+    </div>
+    <div class="card kpi-card">
+      <p class="kpi-label">Additional expenses</p>
+      <p class="kpi-value" id="sim-extra-expenses">&ndash;</p>
+    </div>
+    <div class="card kpi-card">
+      <p class="kpi-label">Delayed payment impact</p>
+      <p class="kpi-value" id="sim-delay-impact">&ndash;</p>
+    </div>
+    <div class="card kpi-card">
+      <p class="kpi-label">Difference, baseline vs scenario</p>
+      <p class="kpi-value" id="sim-difference">&ndash;</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Potential cash-shortage warnings</h3>
+    <p class="text-danger" id="sim-negative-note" hidden></p>
+    <p class="muted" id="sim-no-shortage" hidden>No cash shortage projected in this scenario.</p>
+    <ul class="sim-warning-list" id="sim-warnings"></ul>
+  </div>
+
+  <div id="sim-empty" class="empty-state" hidden>
+    <p>Add invoices or expenses to see a simulation. The simulation uses your recorded data only.</p>
+  </div>
+
+  <div id="sim-charts">
+    <div class="sim-legend" aria-label="Chart legend">
+      <span class="sim-legend-item"><span class="sim-swatch sim-swatch-baseline" aria-hidden="true"></span>Baseline (existing forecast)</span>
+      <span class="sim-legend-item"><span class="sim-swatch sim-swatch-scenario" aria-hidden="true"></span>Scenario (your changes)</span>
+      <span class="sim-legend-item"><span class="sim-swatch sim-swatch-actual" aria-hidden="true"></span>Actual (recorded)</span>
+      <span class="sim-legend-item"><span class="sim-swatch sim-swatch-projected" aria-hidden="true"></span>Projected (simulated)</span>
+    </div>
+
+    <h3>Cash-flow projection</h3>
+    <div class="chart-wrap">
+      <canvas id="sim-cashflow" aria-label="Simulated daily cash balance, scenario versus baseline" role="img"></canvas>
+    </div>
+
+    <h3>Scenario minus baseline</h3>
+    <div class="chart-wrap">
+      <canvas id="sim-compare" aria-label="Daily difference between scenario and baseline balance" role="img"></canvas>
+    </div>
+
+    <h3>Monthly income and expenses</h3>
+    <div class="chart-wrap">
+      <canvas id="sim-monthly" aria-label="Monthly income and expenses, actual and projected" role="img"></canvas>
+    </div>
+    <p class="muted" id="sim-monthly-note">Actual months come from recorded payments and expenses. Projected months are simulated from open invoices and unpaid expenses.</p>
+
+    <h3>Delay impact on balance</h3>
+    <div class="chart-wrap">
+      <canvas id="sim-delay" aria-label="Daily balance, baseline versus delay only" role="img"></canvas>
+    </div>
+
+    <h3>Cash health score</h3>
+    <div class="chart-wrap">
+      <canvas id="sim-health" aria-label="Cash health score, baseline versus scenario" role="img"></canvas>
+    </div>
+  </div>
+</section>
 {% endblock %}
 
 {% block scripts %}
@@ -285,6 +406,368 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var ENDPOINT = "/forecast/simulate";
+  var DEBOUNCE_MS = 250;
+  var NETWORK_ERROR = "Could not update the simulation. Try again.";
+  var FALLBACK_ERROR = "The simulation could not be updated.";
+  var moneyFormat = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+
+  var controls = [
+    { key: "delay_days", range: "sim-delay-range", number: "sim-delay-number" },
+    { key: "collection_pct", range: "sim-collection-range", number: "sim-collection-number" },
+    { key: "revenue_change_pct", range: "sim-revenue-range", number: "sim-revenue-number" },
+    { key: "extra_monthly_expense", range: "sim-extra-range", number: "sim-extra-number" }
+  ];
+  var DEFAULTS = { delay_days: "15", collection_pct: "100", revenue_change_pct: "0", extra_monthly_expense: "0" };
+  var pageDefaults = {};
+  var missing = false;
+
+  controls.forEach(function (c) {
+    c.rangeEl = document.getElementById(c.range);
+    c.numberEl = document.getElementById(c.number);
+    if (!c.rangeEl || !c.numberEl) {
+      missing = true;
+    } else {
+      pageDefaults[c.key] = c.numberEl.value;
+    }
+  });
+  if (missing || !document.getElementById("sim-reset")) {
+    return;
+  }
+
+  var timer = null;
+  var requestId = 0;
+  var charts = {};
+
+  function setText(id, text) {
+    document.getElementById(id).textContent = text;
+  }
+
+  function rupees(paise) {
+    return moneyFormat.format(Number(paise || 0) / 100);
+  }
+
+  function arr(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function setValues(values) {
+    controls.forEach(function (c) {
+      c.rangeEl.value = values[c.key];
+      c.numberEl.value = values[c.key];
+    });
+  }
+
+  function scheduleUpdate() {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(update, DEBOUNCE_MS);
+  }
+
+  controls.forEach(function (c) {
+    c.rangeEl.addEventListener("input", function () {
+      c.numberEl.value = c.rangeEl.value;
+      scheduleUpdate();
+    });
+    c.numberEl.addEventListener("input", function () {
+      if (c.numberEl.value !== "") {
+        c.rangeEl.value = c.numberEl.value;
+      }
+      scheduleUpdate();
+    });
+  });
+
+  document.getElementById("sim-reset").addEventListener("click", function () {
+    setValues(pageDefaults);
+    scheduleUpdate();
+  });
+
+  document.getElementById("sim-restore").addEventListener("click", function () {
+    setValues(DEFAULTS);
+    scheduleUpdate();
+  });
+
+  function buildParams() {
+    var params = new URLSearchParams();
+    controls.forEach(function (c) {
+      params.set(c.key, c.numberEl.value);
+    });
+    return params.toString();
+  }
+
+  function showError(message) {
+    var box = document.getElementById("sim-error");
+    box.textContent = message;
+    box.hidden = false;
+    setText("sim-status", "");
+  }
+
+  function clearError() {
+    var box = document.getElementById("sim-error");
+    box.textContent = "";
+    box.hidden = true;
+  }
+
+  function update() {
+    var id = ++requestId;
+    setText("sim-status", "Updating simulation\u2026");
+    fetch(ENDPOINT + "?" + buildParams(), {
+      credentials: "same-origin",
+      headers: { "Accept": "application/json" }
+    })
+      .then(function (response) {
+        return response.text().then(function (text) {
+          var body = null;
+          try {
+            body = text ? JSON.parse(text) : null;
+          } catch (e) {
+            body = null;
+          }
+          return { ok: response.ok, status: response.status, body: body };
+        });
+      })
+      .then(function (result) {
+        if (id !== requestId) {
+          return;
+        }
+        if (result.status === 400) {
+          var message = result.body && typeof result.body.error === "string" ? result.body.error : FALLBACK_ERROR;
+          showError(message);
+          return;
+        }
+        if (!result.ok || !result.body) {
+          showError(FALLBACK_ERROR);
+          return;
+        }
+        clearError();
+        setText("sim-status", "");
+        render(result.body);
+      })
+      .catch(function () {
+        if (id === requestId) {
+          showError(NETWORK_ERROR);
+        }
+      });
+  }
+
+  function render(data) {
+    var summary = data.summary || {};
+    var scenario = summary.scenario || {};
+    var baseline = summary.baseline || {};
+    var diff = summary.difference || {};
+
+    setText("sim-closing-scenario", rupees(scenario.closing_balance_paise));
+    setText("sim-closing-baseline", rupees(baseline.closing_balance_paise));
+    setText("sim-lowest-scenario", rupees(scenario.min_balance_paise));
+    setText("sim-lowest-date", scenario.min_balance_date || "\u2013");
+    setText("sim-extra-expenses", rupees(summary.additional_expenses_paise));
+    setText("sim-delay-impact", rupees(summary.delay_impact_paise));
+    setText("sim-difference", rupees(diff.closing_balance_paise));
+
+    var negDays = Number(summary.negative_days || 0);
+    var negNote = document.getElementById("sim-negative-note");
+    negNote.textContent = "Projected cash is negative on " + negDays + " day(s)";
+    negNote.hidden = negDays <= 0;
+    document.getElementById("sim-no-shortage").hidden = negDays > 0;
+
+    var list = document.getElementById("sim-warnings");
+    list.textContent = "";
+    arr(summary.warnings).forEach(function (warning) {
+      var li = document.createElement("li");
+      li.textContent = String(warning);
+      list.appendChild(li);
+    });
+
+    var hasData = data.has_data !== false;
+    document.getElementById("sim-charts").hidden = !hasData;
+    document.getElementById("sim-empty").hidden = hasData;
+    if (hasData) {
+      renderCharts(data);
+    } else {
+      destroyCharts();
+    }
+  }
+
+  function destroyCharts() {
+    Object.keys(charts).forEach(function (key) {
+      charts[key].destroy();
+      delete charts[key];
+    });
+  }
+
+  function makeChart(id, config) {
+    var canvas = document.getElementById(id);
+    if (!canvas) {
+      return;
+    }
+    if (charts[id]) {
+      charts[id].destroy();
+    }
+    charts[id] = new Chart(canvas, config);
+  }
+
+  function token(styles, name, fallback) {
+    var value = styles.getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  function hatch(colour) {
+    var tile = document.createElement("canvas");
+    tile.width = 8;
+    tile.height = 8;
+    var g = tile.getContext("2d");
+    g.strokeStyle = colour;
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(0, 8);
+    g.lineTo(8, 0);
+    g.stroke();
+    return g.createPattern(tile, "repeat");
+  }
+
+  function renderCharts(data) {
+    if (typeof Chart === "undefined") {
+      return;
+    }
+    var styles = getComputedStyle(document.body);
+    var income = token(styles, "--chart-income", "#16a34a");
+    var expense = token(styles, "--chart-expense", "#dc2626");
+    var grid = token(styles, "--chart-grid", "#e2e8f0");
+    var text = token(styles, "--chart-text", "#64748b");
+    var primary = token(styles, "--primary", "#4f46e5");
+
+    var labels = arr(data.labels);
+    function rupeeSeries(values) {
+      return arr(values).map(function (p) { return Number(p) / 100; });
+    }
+
+    function options(yTicks, showLegend) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: showLegend, labels: { color: text } },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                var value = ctx.parsed.y;
+                return ctx.dataset.label + ": " + (yTicks ? moneyFormat.format(value) : String(value));
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: text, maxTicksLimit: 10 }, grid: { color: grid } },
+          y: {
+            ticks: { color: text, callback: function (value) { return yTicks ? moneyFormat.format(value) : value; } },
+            grid: { color: grid }
+          }
+        }
+      };
+    }
+
+    makeChart("sim-cashflow", {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          { label: "Baseline (existing forecast)", data: rupeeSeries(data.baseline_balance_paise), borderColor: text, borderDash: [6, 4], tension: 0.2, pointRadius: 0 },
+          { label: "Scenario (your changes)", data: rupeeSeries(data.scenario_balance_paise), borderColor: primary, tension: 0.2, pointRadius: 0 }
+        ]
+      },
+      options: options(true, true)
+    });
+
+    var scenarioSeries = rupeeSeries(data.scenario_balance_paise);
+    var baselineSeries = rupeeSeries(data.baseline_balance_paise);
+    var differences = labels.map(function (_, i) {
+      return (scenarioSeries[i] || 0) - (baselineSeries[i] || 0);
+    });
+    makeChart("sim-compare", {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Scenario minus baseline",
+          data: differences,
+          backgroundColor: differences.map(function (v) { return v < 0 ? expense : income; })
+        }]
+      },
+      options: options(true, false)
+    });
+
+    var monthly = data.monthly || {};
+    var monthLabels = arr(monthly.labels);
+    var isActual = monthLabels.map(function (_, i) {
+      var src = Array.isArray(monthly.source) ? monthly.source[i] : monthly.source;
+      return src === "actual";
+    });
+    var monthCaptions = monthLabels.map(function (label, i) {
+      if (isActual[i]) {
+        return label + " (actual)";
+      }
+      var partial = Array.isArray(monthly.partial) ? monthly.partial[i] : monthly.partial;
+      return label + " (projected" + (partial ? ", partial" : "") + ")";
+    });
+    makeChart("sim-monthly", {
+      type: "bar",
+      data: {
+        labels: monthCaptions,
+        datasets: [
+          {
+            label: "Income",
+            data: rupeeSeries(monthly.income_paise),
+            borderColor: income,
+            borderWidth: 1,
+            backgroundColor: isActual.map(function (a) { return a ? income : hatch(income); })
+          },
+          {
+            label: "Expenses",
+            data: rupeeSeries(monthly.expenses_paise),
+            borderColor: expense,
+            borderWidth: 1,
+            backgroundColor: isActual.map(function (a) { return a ? expense : hatch(expense); })
+          }
+        ]
+      },
+      options: options(true, true)
+    });
+
+    makeChart("sim-delay", {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          { label: "Baseline (existing forecast)", data: rupeeSeries(data.baseline_balance_paise), borderColor: text, borderDash: [6, 4], tension: 0.2, pointRadius: 0 },
+          { label: "Delay only", data: rupeeSeries(data.delay_only_balance_paise), borderColor: expense, tension: 0.2, pointRadius: 0 }
+        ]
+      },
+      options: options(true, true)
+    });
+
+    var health = data.health || {};
+    var healthOptions = options(false, false);
+    healthOptions.scales.y.min = 0;
+    healthOptions.scales.y.max = 100;
+    makeChart("sim-health", {
+      type: "bar",
+      data: {
+        labels: ["Baseline", "Scenario"],
+        datasets: [{
+          label: "Cash health score",
+          data: [Number(health.baseline_total) || 0, Number(health.scenario_total) || 0],
+          backgroundColor: [text, primary]
+        }]
+      },
+      options: healthOptions
+    });
+  }
+
+  update();
 });
 </script>
 {% endblock %}

@@ -24,6 +24,7 @@
 
 <div class="card">
   <form method="post" action="{{ action_url }}" class="form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-grid">
       {{ text_field("name", "Student name", required=True) }}
       {{ text_field("parent_name", "Parent name", required=True) }}

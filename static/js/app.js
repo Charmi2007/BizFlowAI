@@ -208,3 +208,18 @@
   }
 })();
 
+// BizFlow AI – sidebar: mark the active page link with aria-current="page".
+(function () {
+  "use strict";
+
+  var sidebar = document.getElementById("sidebar");
+  if (!sidebar) {
+    return; // Logged-out layout has no sidebar.
+  }
+  var active = sidebar.querySelector("a.nav-link.active");
+  if (active) {
+    active.setAttribute("aria-current", "page");
+  }
+})();
+
+

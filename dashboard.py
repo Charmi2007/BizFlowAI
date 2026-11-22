@@ -5,6 +5,7 @@ from flask import Blueprint, g, render_template
 
 from auth import login_required
 from db import format_inr, get_db
+from preferences import get_dashboard_widgets
 from finance import (
     FORECAST_HORIZON_DAYS,
     build_alerts,
@@ -160,4 +161,5 @@ def dashboard():
         upcoming_days=UPCOMING_DAYS,
         cash_impact=cash_impact,
         impact_delay_days=DEFAULT_DELAY_DAYS,
+        widgets=get_dashboard_widgets(g.user["id"]),
     )

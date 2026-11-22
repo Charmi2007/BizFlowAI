@@ -1,0 +1,110 @@
+
+{% extends "base.html" %}
+
+{% block title %}Settings · BizFlow AI{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">PERSONALIZATION</p>
+        <h1>Settings</h1>
+        <p class="muted">Make BizFlow AI work the way you prefer.</p>
+    </div>
+</div>
+
+<form method="POST" class="settings-layout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <section class="card settings-card">
+        <div class="card-header">
+            <div>
+                <h2>Appearance</h2>
+                <p class="muted">Choose your preferred application theme.</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="theme">Interface theme</label>
+            <select name="theme" id="theme">
+                <option value="light"
+                    {% if preferences.theme == 'light' %}selected{% endif %}>
+                    Light
+                </option>
+                <option value="dark"
+                    {% if preferences.theme == 'dark' %}selected{% endif %}>
+                    Dark
+                </option>
+            </select>
+        </div>
+    </section>
+
+    <section class="card settings-card">
+        <div class="card-header">
+            <div>
+                <h2>Regional preferences</h2>
+                <p class="muted">Saved as a display preference. Amounts are not converted.</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="currency">Currency preference</label>
+            <select name="currency" id="currency">
+                <option value="INR"
+                    {% if preferences.currency == 'INR' %}selected{% endif %}>
+                    INR — Indian Rupee
+                </option>
+                <option value="USD"
+                    {% if preferences.currency == 'USD' %}selected{% endif %}>
+                    USD — US Dollar
+                </option>
+                <option value="EUR"
+                    {% if preferences.currency == 'EUR' %}selected{% endif %}>
+                    EUR — Euro
+                </option>
+                <option value="GBP"
+                    {% if preferences.currency == 'GBP' %}selected{% endif %}>
+                    GBP — British Pound
+                </option>
+            </select>
+            <small class="muted">Display preference only. All amounts are recorded and shown in Indian rupees (₹). Choosing another currency does not convert or change any amount, and does not yet change how amounts are displayed.</small>
+        </div>
+    </section>
+
+    <section class="card settings-card">
+        <div class="card-header">
+            <div>
+                <h2>Dashboard customization</h2>
+                <p class="muted">
+                    Select the sections you want to see on your dashboard.
+                </p>
+            </div>
+        </div>
+
+        <div class="settings-widget-list">
+            {% for key, label in widget_labels.items() %}
+            <label class="settings-widget">
+                <span>
+                    <strong>{{ label }}</strong>
+                    <small class="muted">Dashboard section</small>
+                </span>
+                <input
+                    type="checkbox"
+                    name="widget_{{ key }}"
+                    {% if widgets.get(key, True) %}checked{% endif %}
+                >
+            </label>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="settings-actions">
+        <button type="submit" class="btn btn-primary">
+            Save preferences
+        </button>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-secondary">
+            Cancel
+        </a>
+    </div>
+
+</form>
+{% endblock %}

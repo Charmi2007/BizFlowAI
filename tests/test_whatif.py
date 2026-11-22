@@ -42,6 +42,7 @@ class WhatIfTests(unittest.TestCase):
         self.tmp_dir = tempfile.mkdtemp(prefix="bizflow_whatif_")
         db.DB_PATH = os.path.join(self.tmp_dir, "whatif_test.db")
         self.app = create_app()  # runs db.init_db() against the temporary file
+        self.app.config["WTF_CSRF_ENABLED"] = False  # legacy tests post without tokens; CSRF is covered by tests/test_csrf_and_preferences.py
         self.app.config["TESTING"] = True
         with self.app.app_context():
             conn = db.get_db()

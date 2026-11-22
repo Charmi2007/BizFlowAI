@@ -111,6 +111,7 @@
           <td class="num">{{ payment.amount_label }}</td>
           <td>
             <form method="post" action="{{ url_for('invoices.delete_payment', invoice_id=invoice.id, payment_id=payment.id) }}" onsubmit="return confirm('Delete this payment?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btn btn-ghost btn-sm">Delete</button>
             </form>
           </td>

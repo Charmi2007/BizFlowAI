@@ -5,7 +5,7 @@ plus a what-if that delays one student's invoice payments.
 """
 import datetime
 
-from flask import Blueprint, flash, g, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, g, jsonify, redirect, render_template, request, session, url_for
 
 from auth import login_required
 from db import format_inr, get_db, money_to_paise
@@ -15,6 +15,7 @@ from finance import (
     load_invoice_balances,
     load_unpaid_expenses,
 )
+from simulation import parse_params, run_scenario
 
 bp = Blueprint("forecast", __name__, url_prefix="/forecast")
 
@@ -335,3 +336,16 @@ def update_balance():
         session["cash_balance_paise"] = paise
         flash("Cash balance updated.", "success")
     return redirect(url_for("forecast.index"))
+
+
+@bp.route("/simulate", methods=["GET"])
+@login_required
+def simulate():
+    params, error = parse_params(request.args)
+    if error:
+        return jsonify({"error": error}), 400
+    db = get_db()
+    user_id = g.user["id"]
+    today = datetime.date.today()
+    result = run_scenario(db, user_id, today, get_cash_balance_paise(), params)
+    return jsonify(result)

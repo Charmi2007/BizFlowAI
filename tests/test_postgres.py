@@ -78,6 +78,7 @@ def setUpModule():
         if db.get_database_info().get("dialect") != "postgresql":
             raise unittest.SkipTest("configured database is not PostgreSQL")
         _APP = create_app()  # init_db() runs against the configured database only
+        _APP.config["WTF_CSRF_ENABLED"] = False  # legacy tests post without tokens; CSRF is covered by tests/test_csrf_and_preferences.py
         _APP.config["TESTING"] = True
     except unittest.SkipTest:
         _restore_env()

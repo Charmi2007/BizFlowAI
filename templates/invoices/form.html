@@ -26,6 +26,7 @@
 
 <div class="card">
   <form method="post" action="{{ url_for('invoices.new_invoice') }}" class="form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-grid">
       <label>
         <span>Student</span>

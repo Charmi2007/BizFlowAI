@@ -285,6 +285,23 @@ CREATE TABLE IF NOT EXISTS expenses (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS user_preferences (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    theme TEXT NOT NULL DEFAULT 'light' CHECK (theme IN ('light', 'dark')),
+    currency TEXT NOT NULL DEFAULT 'INR' CHECK (currency IN ('INR', 'USD', 'EUR', 'GBP')),
+    settings_json TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dashboard_widgets (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    widget_key TEXT NOT NULL,
+    visible INTEGER NOT NULL DEFAULT 1 CHECK (visible IN (0, 1)),
+    position INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, widget_key)
+);
+
 CREATE INDEX IF NOT EXISTS idx_students_user_id ON students(user_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON invoices(user_id);
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id);
@@ -354,6 +371,21 @@ SCHEMA_POSTGRES = [
     paid_date TEXT,
     recurring_monthly INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
+)""",
+    """CREATE TABLE IF NOT EXISTS user_preferences (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    theme TEXT NOT NULL DEFAULT 'light' CHECK (theme IN ('light', 'dark')),
+    currency TEXT NOT NULL DEFAULT 'INR' CHECK (currency IN ('INR', 'USD', 'EUR', 'GBP')),
+    settings_json TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT NOT NULL
+)""",
+    """CREATE TABLE IF NOT EXISTS dashboard_widgets (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    widget_key TEXT NOT NULL,
+    visible INTEGER NOT NULL DEFAULT 1 CHECK (visible IN (0, 1)),
+    position INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, widget_key)
 )""",
     "CREATE INDEX IF NOT EXISTS idx_students_user_id ON students(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON invoices(user_id)",
