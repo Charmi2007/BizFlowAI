@@ -96,7 +96,7 @@ def list_students():
     rows = get_db().execute(
         "SELECT * FROM students WHERE user_id = ? "
         "AND (LOWER(name) LIKE ? ESCAPE '!' OR LOWER(parent_name) LIKE ? ESCAPE '!') "
-        "ORDER BY name COLLATE NOCASE",
+        "ORDER BY LOWER(name)",
         (g.user["id"], pattern, pattern),
     ).fetchall()
     students = [dict(row, fee_label=format_inr(row["monthly_fee_paise"])) for row in rows]
@@ -148,7 +148,7 @@ def student_detail(student_id):
 
     payment_rows = db.execute(
         "SELECT p.payment_date, i.invoice_number, p.amount_paise, p.method "
-        "FROM payments p JOIN invoices i ON i.id = p.invoice_id "
+        "FROM payments p JOIN invoices i ON i.id = p.invoice_id AND i.user_id = p.user_id "
         "WHERE i.student_id = ? AND i.user_id = ? AND p.user_id = ? "
         "ORDER BY p.payment_date DESC, p.id DESC",
         (student_id, uid, uid),
@@ -161,7 +161,7 @@ def student_detail(student_id):
     ).fetchone()[0]
     paid = db.execute(
         "SELECT COALESCE(SUM(p.amount_paise), 0) FROM payments p "
-        "JOIN invoices i ON i.id = p.invoice_id "
+        "JOIN invoices i ON i.id = p.invoice_id AND i.user_id = p.user_id "
         "WHERE i.student_id = ? AND i.user_id = ? AND p.user_id = ?",
         (student_id, uid, uid),
     ).fetchone()[0]

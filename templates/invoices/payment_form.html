@@ -17,6 +17,7 @@
 <div class="card">
   <p class="muted">Invoice {{ invoice.invoice_number }} · Balance due {{ balance_label }}</p>
   <form method="post" action="{{ url_for('invoices.new_payment', invoice_id=invoice.id) }}" class="form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-grid">
       {{ text_field("amount", "Amount (₹)", hint="up to balance", attrs=' inputmode="decimal" placeholder="0.00"') }}
       {{ text_field("payment_date", "Payment date", type="date", hint="YYYY-MM-DD") }}

@@ -1,7 +1,6 @@
 """Authentication blueprint and ownership helpers for BizFlow AI."""
 import functools
 import re
-import sqlite3
 from datetime import datetime, timezone
 
 from flask import (
@@ -17,6 +16,7 @@ from flask import (
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
+import db as dbmod
 from db import get_db
 
 bp = Blueprint("auth", __name__)
@@ -96,17 +96,17 @@ def register():
         if error is None:
             created_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
             try:
-                cur = db.execute(
+                user_id = db.insert_returning_id(
                     "INSERT INTO users (name, email, password_hash, created_at) "
                     "VALUES (?, ?, ?, ?)",
                     (name, email, generate_password_hash(password), created_at),
                 )
                 db.commit()
-            except sqlite3.IntegrityError:
+            except dbmod.IntegrityError:
                 error = "An account with this email already exists."
             else:
                 session.clear()
-                session["user_id"] = cur.lastrowid
+                session["user_id"] = user_id
                 return redirect(url_for("dashboard.dashboard"))
 
         flash(error, "error")

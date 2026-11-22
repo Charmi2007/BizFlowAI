@@ -44,6 +44,7 @@ def _create_temp_app(test):
     test.tmp_dir = tempfile.mkdtemp(prefix="bizflow_dates_")
     db.DB_PATH = os.path.join(test.tmp_dir, "dates_test.db")
     test.app = create_app()  # runs db.init_db() against the temporary file
+    test.app.config["WTF_CSRF_ENABLED"] = False  # legacy tests post without tokens; CSRF is covered by tests/test_csrf_and_preferences.py
     test.app.config["TESTING"] = True
     with test.app.app_context():
         conn = db.get_db()
@@ -137,6 +138,7 @@ class DateConsistencyTests(unittest.TestCase):
         module = self._reload_seed("2025-03-15")
         db.DB_PATH = os.path.join(self.tmp_dir, "seed_dates.db")
         app = create_app()
+        app.config["WTF_CSRF_ENABLED"] = False  # legacy tests post without tokens; CSRF is covered by tests/test_csrf_and_preferences.py
         with app.app_context():
             conn = db.get_db()
             module.seed(conn)

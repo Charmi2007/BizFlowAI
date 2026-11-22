@@ -1,56 +1,83 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · {% endblock %}
 {% block content %}
-<div class="card-header">
+<div class="page-heading">
   <div>
     <h1>Dashboard</h1>
     <p class="muted">Welcome, {{ g.user.name }}. Figures as of {{ today }}.</p>
   </div>
 </div>
-<section class="card">
+<section class="card card-interactive">
   <div class="card-header">
+    <div class="kpi-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 4v4"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/></svg>
+    </div>
     <h2>AI Assistant</h2>
   </div>
   <p class="muted">Ask questions about your payments, bills and cash forecast.</p>
   <a href="{{ url_for('assistant.index') }}" class="btn">Open AI Assistant</a>
 </section>
+{% if not (widgets.metrics or widgets.cashflow or widgets.upcoming or widgets.cash_impact or widgets.alerts or widgets.health) %}<section class="card"><p class="muted">All dashboard sections are hidden. Choose which sections to show in <a href="{{ url_for('preferences.settings') }}">Settings</a>.</p></section>{% endif %}
 
-
-
-<section class="stat-grid">
-  <div class="card stat-card">
-    <div class="muted">Total revenue</div>
-    <div class="stat-value">{{ summary.revenue }}</div>
+{% if widgets.metrics %}
+<section class="kpi-grid stat-grid">
+  <div class="card kpi-card kpi-card--success">
+    <div class="kpi-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    </div>
+    <div class="kpi-label">Total revenue</div>
+    <div class="kpi-value">{{ summary.revenue }}</div>
   </div>
-  <div class="card stat-card">
-    <div class="muted">Total expenses paid</div>
-    <div class="stat-value">{{ summary.expenses_paid }}</div>
+  <div class="card kpi-card kpi-card--warning">
+    <div class="kpi-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 3 2V2l-3 2-3-2-3 2-3-2-3 2-3-2z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    </div>
+    <div class="kpi-label">Total expenses paid</div>
+    <div class="kpi-value">{{ summary.expenses_paid }}</div>
   </div>
-  <div class="card stat-card">
-    <div class="muted">Cash balance</div>
-    <div class="stat-value">{{ summary.cash_balance }}</div>
-    <div class="muted"><a href="{{ url_for('forecast.index') }}">Update in forecast</a></div>
+  <div class="card kpi-card kpi-card--success">
+    <div class="kpi-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14" r="1"/></svg>
+    </div>
+    <div class="kpi-label">Cash balance</div>
+    <div class="kpi-value">{{ summary.cash_balance }}</div>
+    <div class="kpi-hint"><a href="{{ url_for('forecast.index') }}">Update in forecast</a></div>
   </div>
-  <div class="card stat-card">
-    <div class="muted">Total outstanding</div>
-    <div class="stat-value">{{ summary.outstanding }}</div>
+  <div class="card kpi-card">
+    <div class="kpi-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+    </div>
+    <div class="kpi-label">Total outstanding</div>
+    <div class="kpi-value">{{ summary.outstanding }}</div>
   </div>
-  <div class="card stat-card">
-    <div class="muted">Overdue invoices</div>
-    <div class="stat-value{% if summary.overdue_count %} text-danger{% endif %}">{{ summary.overdue_count }}</div>
+  <div class="card kpi-card{% if summary.overdue_count %} kpi-card--danger{% endif %}">
+    <div class="kpi-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <div class="kpi-label">Overdue invoices</div>
+    <div class="kpi-value">{{ summary.overdue_count }}</div>
+    <div class="kpi-hint">{% if summary.overdue_count %}Invoices past their due date{% else %}All invoices on time{% endif %}</div>
   </div>
 </section>
+{% endif %}
 
+{% if widgets.cashflow %}
 <section class="card">
   <div class="card-header">
     <h2>Income vs expenses (last 6 months)</h2>
   </div>
   <div class="chart-wrap">
     <canvas id="income-expense-chart" aria-label="Income versus expenses bar chart" role="img"></canvas>
+    <p class="empty-state" id="chart-empty" style="display:none">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      No payments or expenses in the last 6 months yet.
+    </p>
   </div>
   <p class="muted">Income is grouped by payment date. Expenses are grouped by due date, paid or unpaid.</p>
 </section>
+{% endif %}
 
+{% if widgets.upcoming %}
 <section class="card">
   <div class="card-header">
     <h2>Next {{ upcoming_days }} days</h2>
@@ -68,7 +95,9 @@
     </div>
   </dl>
 </section>
+{% endif %}
 
+{% if widgets.cash_impact %}
 <section class="card">
   <div class="card-header">
     <h2>Cash impact of a {{ impact_delay_days }}-day delay</h2>
@@ -88,10 +117,15 @@
   </dl>
   <a href="{{ url_for('forecast.index', student_id=cash_impact.student_id, delay_days=cash_impact.delay_days) }}" class="btn">Open delay what-if</a>
   {% else %}
-  <p class="muted">No outstanding invoices</p>
+  <div class="empty-state">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+    <p class="muted">No outstanding invoices</p>
+  </div>
   {% endif %}
 </section>
+{% endif %}
 
+{% if widgets.alerts %}
 <section class="card">
   <div class="card-header">
     <h2>Alerts</h2>
@@ -106,45 +140,60 @@
     {% endfor %}
   </div>
   {% else %}
-  <p class="muted">No alerts. Nothing needs attention right now.</p>
+  <div class="empty-state">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+    <p class="muted">No alerts. Nothing needs attention right now.</p>
+  </div>
   {% endif %}
 </section>
+{% endif %}
 
+{% if widgets.health %}
 <section class="card">
   <div class="card-header">
     <h2>Business health score</h2>
   </div>
-  <div class="health-score">{{ health.total_points }}<span class="health-score-max"> / 100</span></div>
-  <p class="muted">
-    The score adds up four components: collection (40 points, share of invoiced fees for due invoices actually collected),
-    outstanding (25 points, share of all invoiced fees that is not outstanding),
-    cash cover (20 points, full marks if the 90-day cash forecast stays non-negative, partial if it dips later),
-    and expense management (15 points, share of expenses already due that are marked paid).
-    Each component is rounded to one decimal place and the total is rounded to a whole number.
-  </p>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Component</th>
-          <th class="num">Max points</th>
-          <th class="num">Points</th>
-          <th>Detail</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for component in health.components %}
-        <tr>
-          <td>{{ component.name }}</td>
-          <td class="num">{{ component.max_points }}</td>
-          <td class="num">{{ component.points }}</td>
-          <td>{{ component.detail }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="health-panel">
+    <div>
+      <div class="health-score">{{ health.total_points }}<span class="health-score-max"> / 100</span></div>
+      <div class="health-meter">
+        <div class="health-meter-fill" style="width: {{ health.total_points }}%"></div>
+      </div>
+    </div>
+    <div>
+      <p class="muted">
+        The score adds up four components: collection (40 points, share of invoiced fees for due invoices actually collected),
+        outstanding (25 points, share of all invoiced fees that is not outstanding),
+        cash cover (20 points, full marks if the 90-day cash forecast stays non-negative, partial if it dips later),
+        and expense management (15 points, share of expenses already due that are marked paid).
+        Each component is rounded to one decimal place and the total is rounded to a whole number.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th class="num">Max points</th>
+              <th class="num">Points</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for component in health.components %}
+            <tr>
+              <td>{{ component.name }}</td>
+              <td class="num">{{ component.max_points }}</td>
+              <td class="num">{{ component.points }}</td>
+              <td>{{ component.detail }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </section>
+{% endif %}
 {% endblock %}
 {% block scripts %}
 <script>
@@ -154,19 +203,47 @@
     if (!canvas || typeof Chart === "undefined") {
       return;
     }
+    var styles = getComputedStyle(document.body);
+    function token(name, fallback) {
+      var value = styles.getPropertyValue(name).trim();
+      return value || fallback;
+    }
+    var incomeColour = token("--chart-income", "#16a34a");
+    var expenseColour = token("--chart-expense", "#dc2626");
+    var gridColour = token("--chart-grid", "#e2e8f0");
+    var textColour = token("--chart-text", "#64748b");
+
+    var allZero = (chartData.income || []).concat(chartData.expenses || []).every(function (value) {
+      return !Number(value);
+    });
+    var emptyState = document.getElementById("chart-empty");
+    if (allZero) {
+      canvas.style.display = "none";
+      if (emptyState) {
+        emptyState.style.display = "";
+      }
+      return;
+    }
+
     new Chart(canvas, {
       type: "bar",
       data: {
         labels: chartData.labels,
         datasets: [
-          { label: "Income (Rs)", data: chartData.income, backgroundColor: "#16a34a" },
-          { label: "Expenses (Rs)", data: chartData.expenses, backgroundColor: "#dc2626" }
+          { label: "Income (Rs)", data: chartData.income, backgroundColor: incomeColour, borderRadius: 6 },
+          { label: "Expenses (Rs)", data: chartData.expenses, backgroundColor: expenseColour, borderRadius: 6 }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true } }
+        scales: {
+          x: { grid: { color: gridColour }, ticks: { color: textColour } },
+          y: { beginAtZero: true, grid: { color: gridColour }, ticks: { color: textColour } }
+        },
+        plugins: {
+          legend: { labels: { color: textColour } }
+        }
       }
     });
   });

@@ -57,7 +57,7 @@ def list_followup():
     rows = db.execute(
         "SELECT i.id, i.invoice_number, i.due_date, i.total_paise, "
         "s.name AS student_name, s.parent_name, s.phone "
-        "FROM invoices i JOIN students s ON s.id = i.student_id "
+        "FROM invoices i JOIN students s ON s.id = i.student_id AND s.user_id = i.user_id "
         "WHERE i.user_id = ? ORDER BY i.due_date, i.id",
         (g.user["id"],),
     ).fetchall()

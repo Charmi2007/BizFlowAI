@@ -4,6 +4,7 @@
 <div class="auth-card card">
   <h1>Create account</h1>
   <form method="post" action="{{ url_for('auth.register') }}" class="form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Name
       <input type="text" name="name" value="{{ form.name }}" required autocomplete="name">
     </label>

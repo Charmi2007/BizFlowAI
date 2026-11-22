@@ -7,6 +7,7 @@
     <a href="{{ url_for('students.edit_student', student_id=student.id) }}" class="btn btn-ghost">Edit</a>
     <form method="post" action="{{ url_for('students.delete_student', student_id=student.id) }}" class="inline-form"
           onsubmit="return confirm('Delete this student? Their invoices and payments will also be deleted.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-danger">Delete</button>
     </form>
     <a href="{{ url_for('students.list_students') }}" class="btn btn-ghost">Back to students</a>

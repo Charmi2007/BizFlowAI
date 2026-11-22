@@ -4,6 +4,7 @@
 <div class="card-header">
   <h1>AI Assistant</h1>
   <form method="post" action="{{ url_for('assistant.clear') }}" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="btn btn-ghost btn-sm">Clear chat</button>
   </form>
 </div>
@@ -44,6 +45,7 @@
 </div>
 
 <form method="post" action="{{ url_for('assistant.ask') }}" class="chat-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <textarea name="question" maxlength="{{ max_chars }}" rows="3" required placeholder="Ask about your payments, bills or cash…"></textarea>
   <div class="form-actions">
     <button type="submit" class="btn btn-primary">Ask</button>
