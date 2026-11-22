@@ -192,7 +192,7 @@ def _parse_form(form, student_ids, today):
 
 def _owned_students(db, user_id):
     return db.execute(
-        "SELECT id, name FROM students WHERE user_id = ? ORDER BY name COLLATE NOCASE",
+        "SELECT id, name FROM students WHERE user_id = ? ORDER BY LOWER(name)",
         (user_id,),
     ).fetchall()
 
@@ -242,7 +242,7 @@ def list_invoices():
         "SELECT i.*, s.name AS student_name, "
         "COALESCE((SELECT SUM(p.amount_paise) FROM payments p "
         "WHERE p.invoice_id = i.id AND p.user_id = i.user_id), 0) AS paid_paise "
-        "FROM invoices i JOIN students s ON s.id = i.student_id "
+        "FROM invoices i JOIN students s ON s.id = i.student_id AND s.user_id = i.user_id "
         "WHERE i.user_id = ? ORDER BY i.invoice_date DESC, i.id DESC",
         (g.user["id"],),
     ).fetchall()
@@ -272,9 +272,10 @@ def new_invoice():
         if not errors:
             created_at = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
             try:
-                db.execute("BEGIN IMMEDIATE")
+                if db.dialect == "sqlite":
+                    db.execute("BEGIN IMMEDIATE")
                 number = _next_invoice_number(db, uid, clean["invoice_date"][:4])
-                cur = db.execute(
+                invoice_id = db.insert_returning_id(
                     "INSERT INTO invoices (user_id, student_id, invoice_number, invoice_date, "
                     "due_date, description, total_paise, created_at) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -289,7 +290,6 @@ def new_invoice():
                         created_at,
                     ),
                 )
-                invoice_id = cur.lastrowid
                 db.executemany(
                     "INSERT INTO invoice_items (invoice_id, description, quantity, "
                     "unit_price_paise, amount_paise) VALUES (?, ?, ?, ?, ?)",

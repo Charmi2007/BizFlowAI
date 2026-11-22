@@ -8,3 +8,6 @@ app.db
 *.sqlite3
 .pytest_cache/
 .codebenders/
+
+*.db
+backups/

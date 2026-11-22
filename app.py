@@ -1,4 +1,10 @@
+
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent / ".env", override=False)
 
 from flask import Flask, g, redirect, url_for
 
@@ -15,7 +21,15 @@ import students
 
 def create_app():
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-change-me")
+
+    secret_key = os.environ.get("SECRET_KEY")
+
+    if not secret_key:
+        if os.environ.get("RENDER"):
+            raise RuntimeError("SECRET_KEY must be configured in production.")
+        secret_key = "dev-only-change-me"
+
+    app.config["SECRET_KEY"] = secret_key
 
     db.init_app(app)
     with app.app_context():
